@@ -3,7 +3,6 @@ from typing import List, Dict
 from sklearn.cluster import AgglomerativeClustering
 import torch
 import numpy as np
-
 from fleet import VectorDSU
 
 class ActionPrior(BaseModel):

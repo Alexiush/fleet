@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field, ConfigDict, field_serializer, field_valid
 from typing import List, Dict, Any, Union
 import torch
 import copy
-
 from fleet import Node
 
 class VectorDSU(BaseModel):

@@ -15,8 +15,14 @@ Let your personal fleet of local models fight your problems!
 
 ### Installation
 
-via pip:
-`pip install fleet`
+Install with pip:
+`pip install llm-fleet`
+
+There are optional features that require additional packages:
+* Prior tree (reuse the UCB scores between the tasks) `llm-fleet[priors]`
+* Visualization with pyvis `llm-fleet[vis]`
+
+`llm-fleet[all]` is provided for installing all features. 
 
 ### How it works?
 
