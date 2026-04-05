@@ -3,8 +3,6 @@ from collections import deque
 from pydantic import BaseModel, Field
 from typing import List, Dict, Set
 
-from fleet import VectorDSU
-
 
 class Node(BaseModel):
     children: List[int] = Field(default_factory=list)
@@ -78,7 +76,7 @@ class Node(BaseModel):
             node.rewards.append(reward)
             node.value = (node.value * (node.visits - 1) + reward) / node.visits
 
-    def _get_all_children(self, dsu: VectorDSU):
+    def _get_all_children(self, dsu: 'VectorDSU'):
         all_nodes = []
         nodes = deque()
         nodes.append(self)
