@@ -134,7 +134,7 @@ class FleetWorker:
 
         action_pucbs['exploration'] = exploration_pucb
         actions_sorted = sorted(action_pucbs, key=action_pucbs.get, reverse=True)
-        best_action = actions_sorted[self.rank]
+        best_action = actions_sorted[self.rank % len(actions_sorted)]
 
         exploration = best_action == 'exploration'
         if not exploration:
