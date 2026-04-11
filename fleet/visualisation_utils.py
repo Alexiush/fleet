@@ -2,7 +2,16 @@ from pyvis.network import Network
 from fleet import Node, VectorDSU
 from tokenizers import Tokenizer
 
-def plot_graph(root: Node, dsu: VectorDSU, tokenizer: Tokenizer, path=None):
+def plot_graph(dsu: VectorDSU, tokenizer: Tokenizer, path=None) -> str:
+    """
+    Plots the search graph with pyvis.network
+
+    :param dsu: the dsu containing graph data
+    :param tokenizer: huggingface tokenizer to interpret integer tokens
+    :param path: optional path to save the graph
+    :return: string that is either path to the generated html or the generated html itself
+    """
+    root = 1 # root is first node
     queue = [root]
     mapping = {}
     processed = {root}
@@ -21,7 +30,8 @@ def plot_graph(root: Node, dsu: VectorDSU, tokenizer: Tokenizer, path=None):
         nonlocal id_counter
 
         if node not in mapping:
-            net.add_node(id_counter, label=id_counter, value=node.visits, color=bw_to_hex(node.value))
+            materialized_node = dsu.node_store[node]
+            net.add_node(id_counter, label=id_counter, value=materialized_node.visits, color=bw_to_hex(materialized_node.value))
             mapping[node] = id_counter
             id_counter += 1
 
@@ -32,6 +42,7 @@ def plot_graph(root: Node, dsu: VectorDSU, tokenizer: Tokenizer, path=None):
         queue = queue[1:]
 
         head_node_id = get_node_twin(head)
+        head = dsu.node_store[head]
         for action, nodes in head.children_visits.items():
             for node_id, visits in nodes.items():
                 child_node = head.children[node_id]
@@ -41,13 +52,11 @@ def plot_graph(root: Node, dsu: VectorDSU, tokenizer: Tokenizer, path=None):
                 net.add_edge(head_node_id, child_node_id, weight=visits / head.visits, label=action_label)
 
                 if not child_node in processed:
-                    queue.append(dsu.node_store[child_node])
-                    processed.add(dsu.node_store[child_node])
+                    queue.append(child_node)
+                    processed.add(child_node)
 
 
     if path is not None:
         net.show(path)
     else:
-        temp_path = ""
-        net.show(temp_path)
         return net.generate_html()

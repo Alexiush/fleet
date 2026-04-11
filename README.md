@@ -3,15 +3,15 @@
 Fleet (or Fast Logit Entropy Enhanced Trajectories) is a method
 for Best-of-N scaling of LLMs that provides:
 * More sample-effective solution generation than sampling by temperature
-* With interpretable hyperparameters
+* With data-driven interpretable hyperparameters
 * Token-level decision attribution (and useful trajectories for finetuning)
 * Highly composable
 * Can run in distributed fashion 
 
 > [!NOTE]
 > It also requires white-box access to the model, but only to hidden states. 
-> So technically it can run on backends with tricky attention kernels, but it will be messy
-> due to python hooks.
+> So technically it can run on backends with tricky attention kernels, 
+> but it can be messy as it will need to trip back into python
 
 Let your personal fleet of local models fight your problems!  
 
@@ -51,7 +51,7 @@ to derive the optimal value from few example tasks and reasoning behind it.
 Fleet is not bound to specific model or worker backend 
 (although it uses torch to work with tensors). The library provides primitives 
 for master and workers. There are examples on how to run fleet with `transformers`,
-`nnsight`, `vllm`, `ray`. They also show how to use special features like 
+`nnsight`, `ray`. They also show how to use special features like 
 extracting priors, finetuning datasets from produced trajectories or visualizing the 
 search.
 
@@ -68,4 +68,6 @@ while generation:
     worker.update_tokens(token) # Or pull it from the inputs later
 ```
 
+Alternatively you can avoid intervention and do everything 
+right before and right after sampling.
 

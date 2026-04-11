@@ -18,6 +18,12 @@ class Node(BaseModel):
         )
 
     def add_child(self, node: int, action: int):
+        """
+        Registers the transition from this node to another one
+
+        :param node: integer id of the node in DSU's node store
+        :param action: number of the token used
+        """
         if node not in self.children:
             self.children.append(node)
 
@@ -36,10 +42,18 @@ class Node(BaseModel):
 
     @property
     def is_terminal(self):
+        """Shortcut to check whether the node has children"""
         return not self.children
 
     def upper_confidence_bound(self, state_visits: int, use_reward_penalty=True, exploration_weight=1.0):
-        """Return the UCT score"""
+        """
+        Returns the UCT score of the node
+
+        :param state_visits: as Fleet uses the graph model instead of tree model state visits should be passed explicitly
+        :param use_reward_penalty: if set to `True` additionally penalizes the nodes that appear to hit the dead end
+        :param exploration_weight: coefficient to use with exploration term
+        :return:
+        """
         if self.visits == 0:
             return self.value
         # Encourages exploitation of high-value trajectories
@@ -77,6 +91,7 @@ class Node(BaseModel):
             node.value = (node.value * (node.visits - 1) + reward) / node.visits
 
     def _get_all_children(self, dsu: 'VectorDSU'):
+        """Returns all nodes reachable from this one"""
         all_nodes = []
         nodes = deque()
         nodes.append(self)

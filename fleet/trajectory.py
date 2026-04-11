@@ -10,6 +10,7 @@ class Trajectory(BaseModel):
     reward: float = 0.0
 
     def as_conversation_modeling_trajectory(self):
+        """Returns trajectory with prompt labels masked"""
         return {
           'input_ids': self.tokens,
           'attention_mask': [1] * len(self.tokens),
@@ -17,6 +18,7 @@ class Trajectory(BaseModel):
         }
 
     def as_language_modeling_trajectory(self):
+        """Returns trajectory with all tokens masked except for ones that fleet intervened upon"""
         return {
           'input_ids': self.tokens,
           'attention_mask': [1] * len(self.tokens),
@@ -24,11 +26,11 @@ class Trajectory(BaseModel):
         }
 
     def as_distribution_matching_trajectory(self, dsu, use_reward_penalty=False):
+        """Returns custom data format with `input_ids` and ucb reward distribution instead of labels"""
         states_sorted = sorted(self.states, key=self.states.get)
 
-        examples = []
-        for state in states_sorted:
-            node = dsu[self.states[state]]
+        def get_pucbs(node_id: int) -> Dict[int, float]:
+            node = dsu[node_id]
 
             action_pucbs = {}
             for action, children in node.actions.items():
@@ -41,13 +43,15 @@ class Trajectory(BaseModel):
 
                 action_pucbs[action] = sum(pucbs) / all_visits
 
-            example = {
-              'input_ids': self.tokens[:state],
-              'distribution': action_pucbs
-            }
-            examples.append(example)
+            return action_pucbs
 
-        return examples
+        return {
+            'input_ids': self.tokens,
+            'attention_mask': [1] * len(self.tokens),
+            'distribution': [
+                get_pucbs(i - 1) if i >= self.offset and i - 1 in self.states else -100 for i, t in enumerate(self.tokens)
+            ]
+        }
 
 class ResidualCollection(BaseModel):
     dsu: VectorDSU

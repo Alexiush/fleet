@@ -26,13 +26,14 @@ class PriorTree(BaseModel):
   def deserialize_cluster_members(cls, centroids):
       return torch.Tensor(centroids)
 
-  def count_subtree_size(self):
+  def tree_size(self):
     return self.centroids.shape[0]
 
-  def count_subtree_height(self):
+  def tree_height(self):
     return len(set(self.radia))
 
   def query(self, vector: torch.Tensor) -> Dict[int, ActionPrior]:
+    """Vectorized query for priors on various prior tree levels with vector as a key"""
     if self.centroids.numel() == 0:
       return {}
 
@@ -49,6 +50,13 @@ class PriorTree(BaseModel):
 
 
 def merge_metadata(metadata, indices):
+  """
+  Merges multiple metadata entries into a single one
+
+  :param metadata: list of state metadata dictionaries
+  :param indices: metadata entries to merge
+  :return: merged metadata dictionary
+  """
   aggregated_rewards = {}
   for i in indices:
       for action, rewards in metadata[i].items():
@@ -61,11 +69,19 @@ def merge_metadata(metadata, indices):
 
 class AgglomerativePriorTreeBuilder:
   def __init__(self, initial_radius=0.15, base_variance_threshold=0.33, min_visits=10):
+    """
+    Hierarchically clusters the hidden states and extracts priors from the resulting superclusters.
+
+    :param initial_radius: initial raddius of prior tree hierarchical clusters
+    :param base_variance_threshold: acceptable variance threshold for the lowest level of a tree
+    :param min_visits: minimum number of metadata entries needed for action to be considered a useful prior
+    """
     self.initial_radius = initial_radius
     self.base_variance_threshold = base_variance_threshold
     self.min_visits = min_visits
 
   def build_from_dsus(self, dsus: List[VectorDSU]) -> PriorTree:
+    """Extracts metadata from the list of dsus and turns it into a prior tree"""
     if len(dsus) == 0:
       return PriorTree(
         centroids=torch.empty(0),
@@ -98,6 +114,7 @@ class AgglomerativePriorTreeBuilder:
     return self.build_level(vectors, metadata, 1)
 
   def metadata_to_priors(self, metadata, level):
+    """Extracts useful priors from dsu metadata"""
     statistics = {}
 
     variance_tolerance = self.base_variance_threshold / (1.0 + (1.0 / (level + 1)))
@@ -119,6 +136,7 @@ class AgglomerativePriorTreeBuilder:
       centroids, metadata, level,
       old_centroids=None, old_metadata=None, old_levels=None
     ) -> PriorTree:
+    """Iteratively clusters the data till it becomes a single cluster"""
 
     if old_centroids is None:
       old_centroids = []
