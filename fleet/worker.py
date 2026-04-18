@@ -249,10 +249,6 @@ class FleetWorker:
         :param activation: activation vector to be used by dsu
         :param token: action that transitioned the state towards the registered one
         """
-
-        if node_ref is None:
-            node_ref = self.dsu.create_node()
-
         self.dsu[activation] = node_ref
 
         node = self.dsu.node_store[node_ref]

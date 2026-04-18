@@ -36,33 +36,6 @@ class VectorDSU(BaseModel):
             return [torch.tensor(t) for t in v]
         return v
 
-    def extend_cluster(self, cluster: List[torch.Tensor], vector: torch.Tensor) -> List[torch.Tensor]:
-        """
-        Tries to fit one more vector inside the cluster.
-        Handles near-duplicates and automatically shrinks big clusters into artificial centroids.
-        """
-
-        if self.metric == 'dot':
-            member_sims = torch.stack(cluster) @ vector.unsqueeze(dim=0).T
-        else:
-            raise ValueError("Unknown metric")
-
-        member_sims = member_sims.squeeze()
-        if member_sims.dim() == 0:
-            member_sims = member_sims.unsqueeze(0)
-
-        max_member_sim, max_member_idx = torch.max(member_sims, dim=0)
-
-        if max_member_sim > self.duplicate_threshold:
-            return cluster
-
-        cluster.append(vector)
-
-        if len(cluster) > self.max_cluster_size:
-            cluster = self.quantize_cluster(cluster)
-
-        return cluster
-
     def add_tag(self, tag_vecs: Union[torch.Tensor|List[torch.Tensor]]) -> List[torch.Tensor]:
         """Adds tag, unions if similar, and updates the cluster representative."""
         if not isinstance(tag_vecs, list):
@@ -92,13 +65,12 @@ class VectorDSU(BaseModel):
                 node_ref = self.data_store[target_root]
                 visits = self.node_store[node_ref].visits
                 self.canonical_vec[target_root] = (canonical_vec * visits + t) / (visits + 1)
-                self._update_representative(target_root)
                 reprs.append(target_root)
             else:
                 # New cluster
                 target_root = len(self.canonical_vec)
                 self.canonical_vec.append(t)
-                self.data_store.append(None)
+                self.data_store.append(self.create_node())
                 reprs.append(target_root)
 
         return reprs
@@ -128,8 +100,6 @@ class VectorDSU(BaseModel):
         """Creates an independent replica of the DSU, moving all tensors to the target device."""
         replica = VectorDSU(
             threshold=self.threshold,
-            duplicate_threshold=self.duplicate_threshold,
-            max_cluster_size=self.max_cluster_size,
             metric=self.metric,
         )
 
