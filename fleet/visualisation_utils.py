@@ -1,8 +1,9 @@
 from pyvis.network import Network
-from fleet import Node, VectorDSU
+from fleet import VectorDSU
 from tokenizers import Tokenizer
+from typing import Any
 
-def plot_graph(dsu: VectorDSU, tokenizer: Tokenizer, path=None) -> str:
+def plot_graph(dsu: VectorDSU, tokenizer: Tokenizer, path=None) -> Any | None:
     """
     Plots the search graph with pyvis.network
 
@@ -31,7 +32,11 @@ def plot_graph(dsu: VectorDSU, tokenizer: Tokenizer, path=None) -> str:
 
         if node not in mapping:
             materialized_node = dsu.node_store[node]
-            net.add_node(id_counter, label=id_counter, value=materialized_node.visits, color=bw_to_hex(materialized_node.value))
+            net.add_node(
+                id_counter, label=id_counter,
+                value=materialized_node.visits,
+                color=bw_to_hex(materialized_node.value)
+            )
             mapping[node] = id_counter
             id_counter += 1
 

@@ -1,9 +1,10 @@
 from pydantic import BaseModel, Field, ConfigDict, field_serializer, field_validator
-from typing import List, Dict
+from typing import List, Dict, Optional
 from sklearn.cluster import AgglomerativeClustering
 import torch
 import numpy as np
 from fleet import VectorDSU
+import copy
 
 class ActionPrior(BaseModel):
     visits: int
@@ -26,9 +27,11 @@ class PriorTree(BaseModel):
   def deserialize_cluster_members(cls, centroids):
       return torch.Tensor(centroids)
 
+  @property
   def tree_size(self):
     return self.centroids.shape[0]
 
+  @property
   def tree_height(self):
     return len(set(self.radia))
 
@@ -48,6 +51,15 @@ class PriorTree(BaseModel):
 
     return current_priors
 
+  def to(self, device) -> 'PriorTree':
+    """Creates an independent replica of the PriorTree, moving all tensors to the target device."""
+    replica = PriorTree(
+      centroids = self.centroids.to(device),
+      radia=copy.deepcopy(self.radia),
+      statistics=copy.deepcopy(self.statistics)
+    )
+
+    return replica
 
 def merge_metadata(metadata, indices):
   """
@@ -68,7 +80,7 @@ def merge_metadata(metadata, indices):
 
 
 class AgglomerativePriorTreeBuilder:
-  def __init__(self, initial_radius=0.15, base_variance_threshold=0.33, min_visits=10):
+  def __init__(self, initial_radius=0.15, base_variance_threshold=0.08, min_visits=10):
     """
     Hierarchically clusters the hidden states and extracts priors from the resulting superclusters.
 
@@ -94,22 +106,20 @@ class AgglomerativePriorTreeBuilder:
 
     for dsu in dsus:
       for root_id, vec in enumerate(dsu.canonical_vec):
-        node_ref = dsu.data_store[root_id]
-        if node_ref is not None and node_ref in dsu.node_store:
-          node = dsu.node_store[node_ref]
+        node = dsu.node_store[root_id]
+        action_rewards = {}
 
-          action_rewards = {}
-          for action, children in node.actions.items():
-            rewards = []
-            for child_id in children:
-              child_node = dsu.node_store[child_id]
-              rewards.extend(child_node.rewards)
-            if rewards:
-              action_rewards[action] = rewards
+        for action, children in node.actions.items():
+          rewards = []
+          for child_id in children:
+            child_node = dsu.node_store[child_id]
+            rewards.extend(child_node.rewards)
+          if rewards:
+            action_rewards[action] = rewards
 
-          if action_rewards:
-            vectors.append(vec)
-            metadata.append(action_rewards)
+        if action_rewards:
+          vectors.append(vec)
+          metadata.append(action_rewards)
 
     return self.build_level(vectors, metadata, 1)
 
@@ -117,8 +127,10 @@ class AgglomerativePriorTreeBuilder:
     """Extracts useful priors from dsu metadata"""
     statistics = {}
 
-    variance_tolerance = self.base_variance_threshold / (1.0 + (1.0 / (level + 1)))
-    min_visits = self.min_visits * np.sqrt(level)
+    variance_tolerance = self.base_variance_threshold
+
+    total_visits = sum(len(r) for r in metadata.values())
+    min_visits = max(self.min_visits , int(total_visits * 0.05))
 
     for action, rewards in metadata.items():
       variance = float(np.var(rewards))
@@ -135,7 +147,7 @@ class AgglomerativePriorTreeBuilder:
       self,
       centroids, metadata, level,
       old_centroids=None, old_metadata=None, old_levels=None
-    ) -> PriorTree:
+    ) -> Optional[PriorTree]:
     """Iteratively clusters the data till it becomes a single cluster"""
 
     if old_centroids is None:
@@ -186,8 +198,25 @@ class AgglomerativePriorTreeBuilder:
       all_metadata = new_node_metadata + old_metadata
       all_levels = ([level] * len(new_node_centroids)) + old_levels
 
+      all_statistics = [self.metadata_to_priors(metadata, level) for metadata, level in zip(all_metadata, all_levels)]
+
+      relevant_centroids = []
+      relevant_statistics = []
+      relevant_levels = []
+
+      for c, s, l in zip(all_centroids, all_statistics, all_levels):
+        if len(s.keys()) == 0:
+          continue
+
+        relevant_centroids.append(c)
+        relevant_statistics.append(s)
+        relevant_levels.append(l)
+
+      if len(relevant_centroids) == 0:
+        return None
+
       return PriorTree(
-        centroids=torch.stack(all_centroids, dim=0),
-        statistics=[self.metadata_to_priors(metadata, level) for metadata, level in zip(all_metadata, all_levels)],
-        radia=[self.initial_radius * np.power(1.4, level) for level in all_levels]
+        centroids=torch.stack(relevant_centroids, dim=0),
+        statistics=relevant_statistics,
+        radia=[self.initial_radius * np.power(1.4, level) for level in relevant_levels]
       )

@@ -8,20 +8,25 @@ class VectorDSU(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     threshold: float = 0.9
-    metric: str = 'dot'
 
-    # set_id -> the centroid-nearest string
     canonical_vec: List[torch.Tensor] = Field(default_factory=list)
-    # set_id -> your associated data
-    data_store: List[Any] = Field(default_factory=list)
-    # node_id -> ref to node behind that id
-    node_store: Dict[int, Node] = Field(default_factory=dict)
+    data_store: Dict[str, List[Any]] = Field(default_factory=lambda: {
+      'nodes': [],
+    })
+
+    @property
+    def node_store(self):
+        """The getter: accessed via circle.radius"""
+        return self.data_store['nodes']
 
     def create_node(self):
-        new_id = max(self.node_store.keys(), default=-1) + 1
+        new_id = len(self.node_store)
 
         node = Node()
-        self.node_store[new_id] = node
+        for key, values_list in self.data_store.items():
+            values_list.append(None)
+        self.data_store['nodes'][new_id] = node
+
         return new_id
 
     @field_serializer('canonical_vec')
@@ -36,7 +41,7 @@ class VectorDSU(BaseModel):
             return [torch.tensor(t) for t in v]
         return v
 
-    def add_tag(self, tag_vecs: Union[torch.Tensor|List[torch.Tensor]]) -> List[torch.Tensor]:
+    def add_tag(self, tag_vecs: Union[torch.Tensor | List[torch.Tensor]]) -> List[torch.Tensor]:
         """Adds tag, unions if similar, and updates the cluster representative."""
         if not isinstance(tag_vecs, list):
             tag_vecs = [tag_vecs]
@@ -47,27 +52,24 @@ class VectorDSU(BaseModel):
             if len(self.canonical_vec) > 0:
                 t = t.to(self.canonical_vec[0].device)
 
-            # Compare against current canonical representatives
             reps = self.canonical_vec
-
             if len(reps) == 0:
                 sims = torch.zeros([1], device=t.device)
-            elif self.metric == 'dot':
-                sims = torch.stack(reps) @ t.unsqueeze(dim=0).T
             else:
-                raise ValueError("Unknown metric")
+                sims = torch.stack(reps) @ t.unsqueeze(dim=0).T
 
             best_sim, best_sim_id = torch.max(sims), torch.argmax(sims)
 
             if best_sim > self.threshold:
                 target_root = best_sim_id.item()
                 canonical_vec = self.canonical_vec[target_root]
-                node_ref = self.data_store[target_root]
+                node_ref = target_root
                 visits = self.node_store[node_ref].visits
-                self.canonical_vec[target_root] = (canonical_vec * visits + t) / (visits + 1)
+                new_centroid = (canonical_vec * visits + t) / (visits + 1)
+                new_centroid = new_centroid / new_centroid.norm(p=2)
+                self.canonical_vec[target_root] = new_centroid
                 reprs.append(target_root)
             else:
-                # New cluster
                 target_root = len(self.canonical_vec)
                 self.canonical_vec.append(t)
                 self.data_store.append(self.create_node())
@@ -75,14 +77,30 @@ class VectorDSU(BaseModel):
 
         return reprs
 
-    def __setitem__(self, tag: torch.Tensor, value: Any):
+    def __setitem__(self, keys: tuple[torch.Tensor, str], value: Any):
+        tag, key = keys
         root = self.add_tag(tag)[0]
-        self.data_store[root] = value
+        self.data_store[key][root] = value
 
-    def __getitem__(self, tag: torch.Tensor) -> Any:
-        root = self.add_tag(tag)[0]  # Auto-discover or create
-        return self.data_store[root]
+    def __getitem__(self, query: int | torch.Tensor | tuple[torch.Tensor, str] | tuple[int, str]) -> Any:
+        if isinstance(query, tuple):
+            if isinstance(query[0], torch.Tensor):
+                tag, key = query
+                root = self.add_tag(tag)[0]  # Auto-discover or create
+            else:
+                root, key = query
 
+            return self.data_store[key][root]
+
+        if isinstance(query, torch.Tensor):
+            tag = query
+            root = self.add_tag(tag)[0]
+        else:
+            root = query
+
+        return {k: v[root] for k, v in self.data_store.items()}
+
+    @property
     def vector_count(self) -> int:
         return len(self.canonical_vec)
 
@@ -91,7 +109,7 @@ class VectorDSU(BaseModel):
         return [
             {
                 "representative": self.canonical_vec[root],
-                "data": self.data_store[root],
+                "data": self[root],
             }
             for root in range(len(self.canonical_vec))
         ]
@@ -99,12 +117,10 @@ class VectorDSU(BaseModel):
     def to(self, device) -> 'VectorDSU':
         """Creates an independent replica of the DSU, moving all tensors to the target device."""
         replica = VectorDSU(
-            threshold=self.threshold,
-            metric=self.metric,
+            threshold=self.threshold
         )
 
         replica.canonical_vec = [v.to(device) for v in self.canonical_vec]
         replica.data_store = copy.deepcopy(self.data_store)
-        replica.node_store = copy.deepcopy(self.node_store)
 
         return replica

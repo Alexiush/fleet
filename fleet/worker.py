@@ -249,7 +249,6 @@ class FleetWorker:
         :param activation: activation vector to be used by dsu
         :param token: action that transitioned the state towards the registered one
         """
-        self.dsu[activation] = node_ref
 
         node = self.dsu.node_store[node_ref]
         self.nodes[-1].add_child(node_ref, self.proxy_token)
