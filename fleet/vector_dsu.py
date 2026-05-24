@@ -94,6 +94,11 @@ class VectorDSU(BaseModel):
                 root, key = query
 
             need_specific_key = True
+        elif isinstance(query, torch.Tensor):
+            tag = query
+            need_resolve_root = True
+        else:
+            root = query
 
         if need_resolve_root:
             root = self.add_tag(tag)[0]
