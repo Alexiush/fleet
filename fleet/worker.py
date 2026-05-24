@@ -230,12 +230,12 @@ class FleetWorker:
         :return: penalty vector to be subtracted from logits and list of ids of penalized actions
         """
 
-        node = self.dsu[self.activation_norm_cache]
+        node = self.dsu[self.activation_norm_cache]['nodes']
         if self.return_trajectory:
             self.trajectory.states[len(self.trajectory.tokens) - 1] = self.activation_norm_cache.tolist()
 
         if node is not None:
-            penalties, p_ids = self.apply_penalty(self.dsu.node_store[node], logits)
+            penalties, p_ids = self.apply_penalty(node, logits)
         else:
             penalties, p_ids = torch.zeros_like(logits), []
 
@@ -268,7 +268,7 @@ class FleetWorker:
         self.queue.append((self.activation_norm_cache, token))
 
         for activation_norm, token in self.queue:
-            node = self.dsu[activation_norm]
+            node = self.dsu[activation_norm]['index']
             self.register_connection(node, activation_norm, token)
 
         self.entropies = self.entropies[-10000:]

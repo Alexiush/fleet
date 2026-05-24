@@ -72,7 +72,7 @@ class VectorDSU(BaseModel):
             else:
                 target_root = len(self.canonical_vec)
                 self.canonical_vec.append(t)
-                self.data_store.append(self.create_node())
+                self.create_node()
                 reprs.append(target_root)
 
         return reprs
@@ -83,22 +83,28 @@ class VectorDSU(BaseModel):
         self.data_store[key][root] = value
 
     def __getitem__(self, query: int | torch.Tensor | tuple[torch.Tensor, str] | tuple[int, str]) -> Any:
+        need_resolve_root = False
+        need_specific_key = False
+
         if isinstance(query, tuple):
             if isinstance(query[0], torch.Tensor):
                 tag, key = query
-                root = self.add_tag(tag)[0]  # Auto-discover or create
+                need_resolve_root = True
             else:
                 root, key = query
 
-            return self.data_store[key][root]
+            need_specific_key = True
 
-        if isinstance(query, torch.Tensor):
-            tag = query
+        if need_resolve_root:
             root = self.add_tag(tag)[0]
-        else:
-            root = query
 
-        return {k: v[root] for k, v in self.data_store.items()}
+        values = {k: v[root] for k, v in self.data_store.items()}
+        values['index'] = root
+
+        if need_specific_key:
+            return values[key]
+        else:
+            return values
 
     @property
     def vector_count(self) -> int:
