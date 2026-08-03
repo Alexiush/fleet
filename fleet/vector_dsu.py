@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict, field_serializer, field_validator
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, Self
 import torch
 import copy
 from fleet import Node
@@ -125,13 +125,14 @@ class VectorDSU(BaseModel):
             for root in range(len(self.canonical_vec))
         ]
 
-    def to(self, device) -> 'VectorDSU':
+    def to(self, device) -> Self:
         """Creates an independent replica of the DSU, moving all tensors to the target device."""
-        replica = VectorDSU(
-            threshold=self.threshold
-        )
+        replica_canonical_vec = [v.to(device) for v in self.canonical_vec]
+        replica_data_store = copy.deepcopy(self.data_store)
 
-        replica.canonical_vec = [v.to(device) for v in self.canonical_vec]
-        replica.data_store = copy.deepcopy(self.data_store)
+        replica = self.model_copy(update={
+            "canonical_vec": replica_canonical_vec,
+            "data_store": replica_data_store
+        })
 
         return replica

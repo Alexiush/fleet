@@ -1,17 +1,22 @@
 # Fleet 🚀
 
+The simplest way to scale the LLM performance is to sample multiple answers from it and
+aggregate them. Most of the time such aggregation relies on rewards assigned to each completion.
+As sampling has no memory it can't incorporate these rewards. Fleet introduces memory to the 
+generation process, turning it into a search instead of sampling. 
+
 Fleet (or Fast Logit Entropy Enhanced Trajectories) is a method
-for Best-of-N scaling of LLMs that provides:
+for test-time scaling of LLMs that features:
 * More sample-effective solution generation than sampling by temperature
-* With data-driven interpretable hyperparameters
+* Data-driven interpretable hyperparameters
 * Token-level decision attribution (and useful trajectories 
   for finetuning and RL)
-* Highly composable
-* Can run in distributed fashion 
+* High composability
+* Ability to run in distributed fashion 
 
 > [!NOTE]
 > It also requires white-box access to the model, but only to hidden states, so it
-> does not fight any tricky attention kernels.
+> should not clash with any tricky kernels.
 
 Let your personal fleet of local models fight your problems!  
 
@@ -50,13 +55,13 @@ it shows a substantial improvement over temperature sampling with tuned temperat
 Given that it does not introduce any slow operations 
 it is basically **3x speedup for free**!
 
-> Fleet also greatly benefits from smooth rewards. When using ORM for rewarding, but 
+> Fleet also can benefit from smooth rewards. When using ORM for rewarding, but 
 > not verification Pass@32 further increases up to 0.69.
 
 ### Hyperparameters selection
 
-There is an example notebook in `examples/hyperparameters_test.ipynb` that shows how
-to derive the good value from few example tasks and reasoning behind it. Whole
+There is an example notebook in `examples/hyperparameters_test.ipynb` that shows
+the hyperparameter selection process as described in paper. You can see that whole
 process is data-driven, simple and fast.
 
 ### How to run
@@ -84,5 +89,5 @@ while generation:
 Alternatively (for XLA and other scenarios where computation is compiled) 
 generation process can be patched with precomputed penalties and traced outputs 
 as shown in `examples/llama_nnsight_ray_example.ipynb`. This particular example does 
-not actually  run in compiled fashion, but it does not really rely on any side effects.
+not actually run in compiled fashion, but it does not rely on any side effects.
 

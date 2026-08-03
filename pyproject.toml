@@ -3,17 +3,22 @@ requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fleet"
-version = "0.1.0"
+name = "llm-fleet"
+version = "1.0.0"
+authors = [
+  { name="Oleksii Streltsov", email="streltsov2609@gmail.com" },
+]
+description = """
+Fleet🚀 is an algorithm for distributed test-time scaling of LLM workflows
+that use local models and can evaluate and rank generated completions.
+"""
+readme = "README.md"
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
 dependencies = [
     "pydantic",
     "torch"
 ]
-description = """
-Fleet🚀 is an algorithm for distributed test-time scaling of LLM workflows
-that use local models and have verifiable rewards.
-"""
-readme = "README.md"
 
 [project.optional-dependencies]
 priors = [
