@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict
-from fleet import VectorDSU
+from fleet.vector_dsu import VectorDSU
 import itertools
 
 class Trajectory(BaseModel):

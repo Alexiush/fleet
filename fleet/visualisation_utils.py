@@ -1,5 +1,5 @@
 from pyvis.network import Network
-from fleet import VectorDSU
+from fleet.vector_dsu import VectorDSU
 from tokenizers import Tokenizer
 from typing import Any
 

@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, ConfigDict, field_serializer, field_valid
 from typing import List, Dict, Any, Union, Self
 import torch
 import copy
-from fleet import Node
+from fleet.node import Node
 
 class VectorDSU(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)

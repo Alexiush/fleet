@@ -1,6 +1,9 @@
 from typing import List, Optional, Tuple
 import torch
-from fleet import Node, Trajectory, VectorDSU, PriorTree
+from fleet.node import Node
+from fleet.trajectory import Trajectory
+from fleet.vector_dsu import VectorDSU
+from fleet.prior_tree import PriorTree
 import math
 import random
 
