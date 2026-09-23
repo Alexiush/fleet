@@ -3,7 +3,7 @@ requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "llm-fleet"
+name = "fleet-search"
 version = "1.0.0"
 authors = [
   { name="Oleksii Streltsov", email="streltsov2609@gmail.com" },
@@ -40,3 +40,6 @@ all = [
 Homepage = "https://github.com/Alexiush/fleet"
 Repository = "https://github.com/Alexiush/fleet.git"
 Issues = "https://github.com/Alexiush/fleet/issues"
+
+[tool.setuptools]
+packages = ["fleet"]

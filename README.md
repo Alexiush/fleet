@@ -1,5 +1,8 @@
 # Fleet 🚀
 
+This is an official repository for the paper "FLEET: From Logits Entropy to Enhanced Trajectories in Text Generation",
+that should be available soon on arXiv.
+
 The simplest way to scale the LLM performance is to sample multiple answers from it and
 aggregate them. Most of the time such aggregation relies on rewards assigned to each completion.
 As sampling has no memory it can't incorporate these rewards. Fleet introduces memory to the 
@@ -23,14 +26,14 @@ Let your personal fleet of local models fight your problems!
 ### Installation
 
 Install with pip:
-`pip install llm-fleet`
+`pip install fleet-search`
 
 There are optional features that require additional packages:
-* Prior tree (reuse the UCB scores between the tasks) `llm-fleet[priors]` (this 
+* Prior tree (reuse the UCB scores between the tasks) `fleet-search[priors]` (this 
 is experimental as it will likely need a loot of priors to really make a difference)
-* Visualization with pyvis `llm-fleet[vis]`
+* Visualization with pyvis `fleet-search[vis]`
 
-`llm-fleet[all]` is provided for installing all features. 
+`fleet-search[all]` is provided for installing all features. 
 
 ### How it works?
 
