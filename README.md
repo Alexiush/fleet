@@ -1,7 +1,6 @@
 # Fleet 🚀
 
-This is an official repository for the paper "FLEET: From Logits Entropy to Enhanced Trajectories in Text Generation",
-that should be available soon on arXiv.
+This is an official repository for the paper [FLEET: From Logits Entropy to Enhanced Trajectories in Text Generation](https://arxiv.org/abs/2609.27657). 
 
 The simplest way to scale the LLM performance is to sample multiple answers from it and
 aggregate them. Most of the time such aggregation relies on rewards assigned to each completion.
